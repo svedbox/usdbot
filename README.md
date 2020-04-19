@@ -1,2 +1,2 @@
 # usdbot
-Бот, который на сайте центрального банка России следит за курсом доллара США и, если он изменится, отправляет сообщение на телеграмму.
+Bot wich watch on the site of central bank of russia course of US dollar and if when it changes send message to telegram.
