@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-#------------------------------svedboxlab----------------------------------#
+#------------------------------svedbox-------------------------------------#
 #-----Bot wich watch on the site of central bank of russia ----------------#
 #-----course of US dollar and if when it changes send message to telegram--# 
 #--------------------------------------------------------------------------#
@@ -12,20 +12,17 @@ import requests
 import socks
 import datetime
 import sqlite3
-#--------Variables-------------------------------------#
+import configparser
+import ast
+#--------Variables paths------------------------------------#
 logpath=(os.getcwd() +'/.usdcourse/usdcourse.log')
+confpath=(os.getcwd() +'/.usdcourse/usdcourse.conf')
 workdirpath=(os.getcwd() +'/.usdcourse')
 dbpath=(os.getcwd() +'/.usdcourse/usdcourse.db')
 fileusdcourselog=pathlib.Path(logpath)
+fileconf=pathlib.Path(confpath)
 dirusdcourse = pathlib.Path(workdirpath)
 dbfile = pathlib.Path(dbpath)
-cbrurl = ('http://www.cbr.ru/scripts/XML_daily.asp?date_req=')
-token='' #<----insert TELEGRAM TOKEN
-chatid=''#<----insert TELEGRAM CHAT ID
-boturl='https://api.telegram.org/bot' 
-proxies={"https":"socks5://192.168.0.150:9050"} #--if you live in non free country, you must install tor
-urlt = (boturl + token +'/sendMessage')
-date=str(datetime.datetime.today().strftime("%d.%m.%Y"))
 #----Create the work dir-----------------#
 if (os.path.exists(dirusdcourse)):
     pass
@@ -38,7 +35,36 @@ else:
     file = open(logpath, 'w+')
     file.write('0')
     file.close()
-#-------Change exist the database------------#
+#----Create conf file---------#
+if (os.path.exists(fileconf)):
+    pass
+else:
+    file = open(confpath, 'w+')
+    file.write('#----Please write your telegram token and chat id---- ')
+    file.write('\n''#--For exampe token=8795737745gjhg3g47564g3g5j8746763534htgjgtHGH')
+    file.write('\n''#--For exampe chatid=6655675743')
+    file.write('\n''#--For exampe proxy=127.0.0.1:9050''\n''\n''\n')
+    file.write('\n''[Main]')
+    file.write('\n''token=')
+    file.write('\n''chatid=')
+    file.write('\n''proxies=')
+    file.close()
+    print('!!! Please watch usdcourse.conf, and correct it.')
+    quit()
+#--------Read conf file-------------#
+config = configparser.ConfigParser()
+config.read(fileconf)
+token = (config["Main"]["token"])
+chatid = (config["Main"]["chatid"])
+proxy= (config["Main"]["proxy"])
+#--------Work variables-------------------------------------#
+cbrurl = ('http://www.cbr.ru/scripts/XML_daily.asp?date_req=')
+boturl='https://api.telegram.org/bot' 
+proxi=("{'https':'socks5://"+ proxy + "'}")
+proxies=ast.literal_eval(proxi)
+urlt = str(boturl + token +'/sendMessage')
+date = str(datetime.datetime.today().strftime("%d.%m.%Y"))
+#-------Check exist the database------------#
 if (os.path.exists(dbfile)):
     pass
 else:
@@ -59,12 +85,12 @@ cbrpage = str(urllib.request.urlopen(cbrurl).read())
 usdindex = cbrpage.find('USD')
 usdcoursetmp = (cbrpage[usdindex+91:usdindex+96]).replace(',','.')
 usdcourse = float(usdcoursetmp) #-Course of CBR digital--#
-
 #-------Check change course of CBR-------#
 #-------------SQL-------------------------#
 conn = sqlite3.connect(dbfile)
 cur = conn.cursor()
 [usdold], = cur.execute("SELECT lastcourse FROM lastusd WHERE id = 1 ")
+
 conn.commit()
 cur.close()
 conn.close()
@@ -78,8 +104,8 @@ else:
         usdchangestr=str(usdchange)
         usdchangeout = ('+'+ usdchangestr)
         data = {"chat_id":chatid, "text":("Курс ЦБ  " + str(usdcourse) + " (" + usdchangeout + ")")}
-        message = str(requests.post(urlt, data ,proxies=proxies)) #--if you live in free country you must comment
-       #message = str(requests.post(urlt, data)) #--if you live in free country, you must uncomment
+        message = str(requests.post(urlt, data ,proxies=proxies))
+        print(message)
         file = open(logpath, 'a')
         file.write('\n' "| " + message + " | "+ date + " | Курс USD - " + usdcoursetmp + " |")
         file.close()
@@ -95,8 +121,7 @@ else:
     else:
         usdchangeout = str(usdchange)
         data = {"chat_id":chatid, "text":("Курс ЦБ  " + str(usdcourse) + " (" + usdchangeout + ")")}
-        message = str(requests.post(urlt, data ,proxies=proxies)) #--if you live in free country you must comment
-       #message = str(requests.post(urlt, data)) #--if you live in free country, you must uncomment
+        message = str(requests.post(urlt, data ,proxies=proxies))
         file = open(logpath, 'a')
         file.write('\n' "| " + message + " | "+ date + " | Курс USD - " + usdcoursetmp + " |")
         file.close()
