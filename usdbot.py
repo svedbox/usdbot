@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 #----------------------------svedbox-----------------------------------#
 #-----Telegram bot for watching at the course of USD on site of -------#
 #-----Central bank of Russia and when it changed sends message to -----# 
