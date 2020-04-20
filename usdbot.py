@@ -25,21 +25,15 @@ fileconf=pathlib.Path(confpath)
 dirusdcourse = pathlib.Path(workdirpath)
 dbfile = pathlib.Path(dbpath)
 #----Creating work dir-----------------#
-if (os.path.exists(dirusdcourse)):
-    pass
-else:
+if not (os.path.exists(dirusdcourse)):
     d = os.mkdir(workdirpath)
 #----Creating log file---------#
-if (os.path.exists(fileusdcourselog)):
-    pass
-else:
+if not (os.path.exists(fileusdcourselog)):
     file = open(logpath, 'w+')
     file.write('0')
     file.close()
 #----Creating conf file---------#
-if (os.path.exists(fileconf)):
-    pass
-else:
+if not (os.path.exists(fileconf)):
     file = open(confpath, 'w+')
     file.write('#----Please write your telegram token and chat id---- ')
     file.write('\n''#--For exampe token=8795737745gjhg3g47564g3g5j8746763534htgjgtHGH')
@@ -66,9 +60,7 @@ proxies=ast.literal_eval(proxi)
 urlt = str(boturl + token +'/sendMessage')
 date = str(datetime.datetime.today().strftime("%d.%m.%Y"))
 #-------Checking exist database------------#
-if (os.path.exists(dbfile)):
-    pass
-else:
+if not (os.path.exists(dbfile)):
     conn = sqlite3.connect(dbfile)
     cursor = conn.cursor()
     cursor.execute("""CREATE TABLE courses
@@ -95,9 +87,7 @@ conn.commit()
 cur.close()
 conn.close()
 #-----------------------------------------#
-if (usdcourse == usdold):
-    pass
-else:
+if (usdcourse != usdold):
     usdchange = round((usdcourse - usdold),2)
     if (usdchange > 0):
         usdchangestr=str(usdchange)
