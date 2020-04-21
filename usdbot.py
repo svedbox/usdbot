@@ -14,7 +14,6 @@ import socks
 import datetime
 import sqlite3
 import configparser
-import sys
 #--------Variables of paths--------------------------#
 workpath=(os.getcwd() +'/.usdcourse')
 configpath=(os.getcwd() +'/.usdcourse/usdcourse.conf')
@@ -44,16 +43,18 @@ proxy = config.get('Main', 'proxy')
 #--------Work variables-------------------------------------#
 cbrurl = ('http://www.cbr.ru/scripts/XML_daily.asp?date_req=')
 boturl='https://api.telegram.org/bot' 
-token = input('Enter your telegram token -')
-chatid = input('Enter your telegram chat id -')
-urlt = str(boturl + token +'/sendMessage')
 date = str(datetime.datetime.today().strftime("%d.%m.%Y"))
 prox = ("socks5://" + proxy)
 proxies = {"https":prox}
 #-------Checking exist database------------#
 if not (os.path.exists(dbpath)):
+    token = input('Enter your telegram token -')
+    chatid = input('Enter your telegram chat id -')
     conn = sqlite3.connect(dbpath)
     cursor = conn.cursor()
+    cursor.execute("""CREATE TABLE secret
+                      ('id' INTEGER PRIMARY KEY, 'token' TEXT, 'chatid' TEXT)
+                   """)
     cursor.execute("""CREATE TABLE courses
                       ('id' INTEGER PRIMARY KEY AUTOINCREMENT, 'date' TEXT, 'course' REAL, 'message' TEXT )
                    """)
@@ -61,10 +62,21 @@ if not (os.path.exists(dbpath)):
                       ('id' INTEGER PRIMARY KEY,'lastcourse' REAL)
                    """)
     cursor.execute("INSERT INTO lastusd (id, lastcourse) VALUES (1, 0)" )
+    cursor.execute("INSERT INTO secret (id, token, chatid) VALUES (1, ?, ?)" , (token, chatid))
     conn.commit()
     cursor.close()
     conn.close()
+
+#----------------SQL--Sec------------------------------#
+conn = sqlite3.connect(dbpath)
+cursor = conn.cursor()
+[token], = cursor.execute("SELECT token FROM secret WHERE id = 1 ")
+[chatid], = cursor.execute("SELECT chatid FROM secret WHERE id = 1 ")
+conn.commit()
+cursor.close()
+conn.close()
 #---------------------------------------------------#
+urlt = str(boturl + token +'/sendMessage')
 cbrpage = str(urllib.request.urlopen(cbrurl).read())
 usdindex = cbrpage.find('USD')
 usdcoursetmp = (cbrpage[usdindex+91:usdindex+96]).replace(',','.')
@@ -88,7 +100,6 @@ if (usdcourse != usdold):
             message = str(requests.post(urlt, data))
         else:
             message = str(requests.post(urlt, data ,proxies=proxies))
-        print(message)
         file = open(logpath, 'a')
         file.write('\n' "| " + message + " | "+ date + " | Курс USD - " + usdcoursetmp + " |")
         file.close()
