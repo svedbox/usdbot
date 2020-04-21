@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+#coding:utf-8
 #----------------------------svedbox-----------------------------------#
 #-----Telegram bot for watching at the course of USD on site of -------#
 #-----Central bank of Russia and when it changed sends message to -----# 
@@ -6,7 +7,6 @@
 #----------------------------------------------------------------------#
 #--------Modules-------#
 import os
-import pathlib
 import urllib.request
 import string
 import requests
@@ -14,54 +14,45 @@ import socks
 import datetime
 import sqlite3
 import configparser
-import ast
+import sys
 #--------Variables of paths--------------------------#
+workpath=(os.getcwd() +'/.usdcourse')
+configpath=(os.getcwd() +'/.usdcourse/usdcourse.conf')
 logpath=(os.getcwd() +'/.usdcourse/usdcourse.log')
-confpath=(os.getcwd() +'/.usdcourse/usdcourse.conf')
-workdirpath=(os.getcwd() +'/.usdcourse')
 dbpath=(os.getcwd() +'/.usdcourse/usdcourse.db')
-fileusdcourselog=pathlib.Path(logpath)
-fileconf=pathlib.Path(confpath)
-dirusdcourse = pathlib.Path(workdirpath)
-dbfile = pathlib.Path(dbpath)
 #----Creating work dir-----------------#
-if not (os.path.exists(dirusdcourse)):
+if not (os.path.exists(workpath)):
     d = os.mkdir(workdirpath)
+#----Creating conf file---------#
+if not (os.path.exists(configpath)):
+    config = configparser.ConfigParser(allow_no_value=True)
+    config.add_section("Read me")
+    config.set('Read me', "# If you use a proxy-server please set address and port\n for example proxy = 127.0.0.1:9090\n default proxy=false")
+    config.add_section("Main") 
+    config.set("Main", "proxy","false")
+    with open(configpath, "w") as config_file:
+        config.write(config_file)
 #----Creating log file---------#
-if not (os.path.exists(fileusdcourselog)):
+if not (os.path.exists(logpath)):
     file = open(logpath, 'w+')
     file.write('0')
     file.close()
-#----Creating conf file---------#
-if not (os.path.exists(fileconf)):
-    file = open(confpath, 'w+')
-    file.write('#----Please write your telegram token and chat id---- ')
-    file.write('\n''#--For exampe token=8795737745gjhg3g47564g3g5j8746763534htgjgtHGH')
-    file.write('\n''#--For exampe chatid=6655675743')
-    file.write('\n''#--For exampe proxy=127.0.0.1:9050''\n''\n''\n')
-    file.write('\n''[Main]')
-    file.write('\n''token=')
-    file.write('\n''chatid=')
-    file.write('\n''proxies=')
-    file.close()
-    print('!!! Please watch usdcourse.conf, and correct it.')
-    quit()
 #--------Reading conf file-------------#
 config = configparser.ConfigParser()
-config.read(fileconf)
-token = (config["Main"]["token"])
-chatid = (config["Main"]["chatid"])
-proxy= (config["Main"]["proxy"])
+config.read(configpath)
+proxy = config.get('Main', 'proxy')
 #--------Work variables-------------------------------------#
 cbrurl = ('http://www.cbr.ru/scripts/XML_daily.asp?date_req=')
 boturl='https://api.telegram.org/bot' 
-proxi=("{'https':'socks5://"+ proxy + "'}")
-proxies=ast.literal_eval(proxi)
+token = input('Enter your telegram token -')
+chatid = input('Enter your telegram chat id -')
 urlt = str(boturl + token +'/sendMessage')
 date = str(datetime.datetime.today().strftime("%d.%m.%Y"))
+prox = ("socks5://" + proxy)
+proxies = {"https":prox}
 #-------Checking exist database------------#
-if not (os.path.exists(dbfile)):
-    conn = sqlite3.connect(dbfile)
+if not (os.path.exists(dbpath)):
+    conn = sqlite3.connect(dbpath)
     cursor = conn.cursor()
     cursor.execute("""CREATE TABLE courses
                       ('id' INTEGER PRIMARY KEY AUTOINCREMENT, 'date' TEXT, 'course' REAL, 'message' TEXT )
@@ -80,7 +71,7 @@ usdcoursetmp = (cbrpage[usdindex+91:usdindex+96]).replace(',','.')
 usdcourse = float(usdcoursetmp) #-Digital course of CBR--#
 #-------Check course of USD on the site of CBR of Russia-------#
 #-------------SQL-------------------------#
-conn = sqlite3.connect(dbfile)
+conn = sqlite3.connect(dbpath)
 cur = conn.cursor()
 [usdold], = cur.execute("SELECT lastcourse FROM lastusd WHERE id = 1 ")
 conn.commit()
@@ -93,13 +84,16 @@ if (usdcourse != usdold):
         usdchangestr=str(usdchange)
         usdchangeout = ('+'+ usdchangestr)
         data = {"chat_id":chatid, "text":("Курс ЦБ  " + str(usdcourse) + " (" + usdchangeout + ")")}
-        message = str(requests.post(urlt, data ,proxies=proxies))
+        if proxy == 'false':
+            message = str(requests.post(urlt, data))
+        else:
+            message = str(requests.post(urlt, data ,proxies=proxies))
         print(message)
         file = open(logpath, 'a')
         file.write('\n' "| " + message + " | "+ date + " | Курс USD - " + usdcoursetmp + " |")
         file.close()
         #-------------SQL----------------#
-        conn = sqlite3.connect(dbfile)
+        conn = sqlite3.connect(dbpath)
         cursor = conn.cursor()
         cursor.execute("INSERT INTO courses (date, course, message) VALUES (?, ?, ?)" , (date, usdcourse, message))
         cursor.execute("UPDATE lastusd SET lastcourse = ? WHERE id = 1 "  , (usdcourse,))
@@ -110,12 +104,15 @@ if (usdcourse != usdold):
     else:
         usdchangeout = str(usdchange)
         data = {"chat_id":chatid, "text":("Курс ЦБ  " + str(usdcourse) + " (" + usdchangeout + ")")}
-        message = str(requests.post(urlt, data ,proxies=proxies))
+        if proxy == 'false':
+            message = str(requests.post(urlt, data))
+        else:
+            message = str(requests.post(urlt, data ,proxies=proxies))
         file = open(logpath, 'a')
         file.write('\n' "| " + message + " | "+ date + " | Курс USD - " + usdcoursetmp + " |")
         file.close()
         #-------------SQL----------------#
-        conn = sqlite3.connect(dbfile)
+        conn = sqlite3.connect(dbpath)
         cursor = conn.cursor()
         cursor.execute("INSERT INTO courses (date, course, message) VALUES (?, ?, ?)" , (date, usdcourse, message))
         cursor.execute("UPDATE lastusd SET lastcourse = ? WHERE id = 1 "  , (usdcourse,))
