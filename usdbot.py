@@ -21,12 +21,12 @@ logpath=(os.getcwd() +'/.usdcourse/usdcourse.log')
 dbpath=(os.getcwd() +'/.usdcourse/usdcourse.db')
 #----Creating work dir-----------------#
 if not (os.path.exists(workpath)):
-    d = os.mkdir(workdirpath)
+    d = os.mkdir(workpath)
 #----Creating conf file---------#
 if not (os.path.exists(configpath)):
     config = configparser.ConfigParser(allow_no_value=True)
     config.add_section("Read me")
-    config.set('Read me', "# If you use a proxy-server please set address and port\n for example proxy = 127.0.0.1:9090\n default proxy=false")
+    config.set('Read me', "# If you use a proxy-server please set address and port\n #for example proxy = 127.0.0.1:9090\n #default proxy=false")
     config.add_section("Main") 
     config.set("Main", "proxy","false")
     with open(configpath, "w") as config_file:
